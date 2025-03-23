@@ -1,21 +1,13 @@
 services:
   - type: web
-    name: my-python-app
+    name: flask-selenium-app
     env: python
     runtime: python3
-    region: oregon
-    plan: free
-    buildCommand: |
-      # Update package lists and install Chrome and ChromeDriver
-      apt-get update && apt-get install -y wget unzip
-      wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-      apt-get install -y ./google-chrome-stable_current_amd64.deb
-      CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
-      wget https://chromedriver.storage.googleapis.com/$CHROME_VERSION/chromedriver_linux64.zip
-      unzip chromedriver_linux64.zip -d /usr/local/bin/
-      # Install Python dependencies
-      pip install -r requirements.txt
-    startCommand: python app.py
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
     envVars:
-      - key: GDRIVE_CREDENTIALS
-        sync: false  # Set this in the Render Dashboard to your service account JSON content
+      - key: CHROMEDRIVER_PATH
+        value: /usr/local/bin/chromedriver
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/secrets/your_service_account.json
+    dockerfile: Dockerfile
