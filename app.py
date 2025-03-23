@@ -3,8 +3,8 @@ import time
 import random
 import logging
 
-# Import chromedriver-binary to add the chromedriver binary to PATH automatically.
-import chromedriver_binary  
+# Import chromedriver-binary to add the binary to PATH automatically.
+import chromedriver_binary
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -49,10 +49,11 @@ def browser_setup():
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--window-size=1920x1080")
         chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--remote-debugging-port=9222")
-
-        # No need to specify executable_path when using chromedriver-binary-auto
-        return webdriver.Chrome(chrome_options=chrome_options)
+        # Removed remote debugging port argument to avoid timeout issues:
+        # chrome_options.add_argument("--remote-debugging-port=9222")
+        
+        # Use the new 'options' parameter to avoid deprecation warnings.
+        return webdriver.Chrome(options=chrome_options)
     except WebDriverException as e:
         logger.error(f"Browser setup failed: {str(e)}")
         raise
