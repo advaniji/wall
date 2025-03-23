@@ -2,6 +2,10 @@ import os
 import time
 import random
 import logging
+
+# Import chromedriver-binary to add the chromedriver binary to PATH automatically.
+import chromedriver_binary  
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -37,7 +41,7 @@ def setup_drive():
         raise
 
 def browser_setup():
-    """Configure headless Chrome browser for Render.com using older Selenium parameters"""
+    """Configure headless Chrome browser for Render.com using Selenium 3.x settings"""
     try:
         chrome_options = Options()
         chrome_options.add_argument("--headless")
@@ -47,8 +51,8 @@ def browser_setup():
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--remote-debugging-port=9222")
 
-        # Use executable_path and chrome_options for Selenium versions below 4.x
-        return webdriver.Chrome(executable_path='/usr/bin/chromedriver', chrome_options=chrome_options)
+        # No need to specify executable_path when using chromedriver-binary-auto
+        return webdriver.Chrome(chrome_options=chrome_options)
     except WebDriverException as e:
         logger.error(f"Browser setup failed: {str(e)}")
         raise
