@@ -1,9 +1,14 @@
+# render.yaml
 services:
   - type: web
     name: youtube-screenshot-bot
     env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: python app.py
+    buildCommand: |
+      apt-get update && \
+      apt-get install -y chromium chromium-driver && \
+      pip install -r requirements.txt
+    startCommand: |
+      python -u app.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.6
