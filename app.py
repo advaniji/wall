@@ -3,7 +3,6 @@ import time
 import random
 import logging
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException, NoSuchElementException
@@ -38,19 +37,18 @@ def setup_drive():
         raise
 
 def browser_setup():
-    """Configure headless Chrome browser for Render.com"""
+    """Configure headless Chrome browser for Render.com using older Selenium parameters"""
     try:
         chrome_options = Options()
-        chrome_options.add_argument("--headless=new")
+        chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--window-size=1920x1080")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--remote-debugging-port=9222")
 
-        # Configure ChromeDriver
-        service = Service(executable_path='/usr/bin/chromedriver')
-        return webdriver.Chrome(service=service, options=chrome_options)
+        # Use executable_path and chrome_options for Selenium versions below 4.x
+        return webdriver.Chrome(executable_path='/usr/bin/chromedriver', chrome_options=chrome_options)
     except WebDriverException as e:
         logger.error(f"Browser setup failed: {str(e)}")
         raise
