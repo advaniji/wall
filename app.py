@@ -2,10 +2,9 @@ import os
 import time
 import random
 import logging
+import chromedriver_binary  # Automatically adds chromedriver to PATH
 
-# Import chromedriver-binary to add the binary to PATH automatically.
-import chromedriver_binary
-
+from flask import Flask, jsonify
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -26,12 +25,18 @@ DRIVE_FOLDER_ID = '1gEtuIBff3DiRfcTUHLZchQDyCw90QBp3'
 PLAYLIST_URL = 'https://www.youtube.com/playlist?list=PL9Zg64loGCGCFo5VXVb0KJrbiPhmOnGkK'
 TEMP_DIR = '/tmp/youtube_screenshots'
 
+# Initialize Flask app
+app = Flask(__name__)
+
 def setup_drive():
     """Initialize Google Drive authentication with service account"""
     try:
+        # Use the GOOGLE_APPLICATION_CREDENTIALS environment variable,
+        # fallback to abc.json in the repo root if not set.
+        credentials_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', 'abc.json')
         gauth = GoogleAuth()
         credentials = ServiceAccountCredentials.from_json_keyfile_name(
-            os.environ.get('GDRIVE_CREDENTIALS', 'abc.json'),
+            credentials_path,
             ['https://www.googleapis.com/auth/drive']
         )
         gauth.credentials = credentials
@@ -49,10 +54,9 @@ def browser_setup():
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--window-size=1920x1080")
         chrome_options.add_argument("--disable-gpu")
-        # Removed remote debugging port argument to avoid timeout issues:
-        # chrome_options.add_argument("--remote-debugging-port=9222")
-        
-        # Use the new 'options' parameter to avoid deprecation warnings.
+        # Removed remote debugging port argument to avoid timeout issues
+
+        # Use the 'options' parameter (not chrome_options) to avoid deprecation warnings.
         return webdriver.Chrome(options=chrome_options)
     except WebDriverException as e:
         logger.error(f"Browser setup failed: {str(e)}")
@@ -125,8 +129,8 @@ def upload_to_drive(local_path, filename):
         logger.error(f"Drive upload failed for {filename}: {str(e)}")
         raise
 
-def main():
-    """Main execution flow"""
+def main_process():
+    """Main execution flow to process videos from the playlist"""
     driver = None
     try:
         driver = browser_setup()
@@ -137,28 +141,37 @@ def main():
         video_links = [elem.get_attribute("href") for elem in video_elements]
         logger.info(f"Found {len(video_links)} videos in playlist")
 
-        for idx, video_url in enumerate(video_links[:5], 1):  # Process first 5 for testing
+        # Process first 5 videos for testing
+        for idx, video_url in enumerate(video_links[:5], 1):
             if video_url:  # Skip None values
                 process_video(driver, idx, video_url)
 
+        return {"status": "success", "processed_videos": min(5, len(video_links))}
     except Exception as e:
         logger.error(f"Fatal error in main execution: {str(e)}")
+        return {"status": "error", "error": str(e)}
     finally:
         if driver:
             driver.quit()
             logger.info("Browser instance closed")
 
-if __name__ == "__main__":
-    # Initialize Google Drive connection
-    try:
-        drive = setup_drive()
-        logger.info("Successfully authenticated with Google Drive")
-    except Exception as e:
-        logger.error("Failed to initialize Google Drive connection")
-        raise
+# Initialize Google Drive connection at startup.
+try:
+    drive = setup_drive()
+    logger.info("Successfully authenticated with Google Drive")
+except Exception as e:
+    logger.error("Failed to initialize Google Drive connection")
+    raise
 
-    # Create temp directory if not exists
-    os.makedirs(TEMP_DIR, exist_ok=True)
-    
-    # Start main process
-    main()
+# Ensure TEMP_DIR exists
+os.makedirs(TEMP_DIR, exist_ok=True)
+
+@app.route("/")
+def index():
+    """HTTP endpoint to trigger video processing"""
+    result = main_process()
+    return jsonify(result)
+
+# Expose the Flask app for Gunicorn
+if __name__ == "__main__":
+    app.run(debug=True)
